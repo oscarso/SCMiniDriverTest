@@ -29,23 +29,22 @@ void main(void)
 	HCRYPTPROV hCryptProv;
 
 	// The name of the container.
-	LPCTSTR pszContainerName = TEXT("My_Key_Container");
-	LPCTSTR pszProviderName = TEXT("Microsoft Base Smart Card Crypto Provider");
+	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\");
 
 	//---------------------------------------------------------------
 	// Begin processing. Attempt to acquire a context by using the 
 	// specified key container.
 	if (CryptAcquireContext(
 		&hCryptProv,
-		pszContainerName,
-		pszProviderName,
+		pszSCReader,
+		MS_SCARD_PROV,
 		PROV_RSA_FULL,
 		0))
 	{
 		_tprintf(
 			TEXT("A crypto context with the %s key container ")
 			TEXT("has been acquired.\n"),
-			pszContainerName);
+			pszSCReader);
 	}
 	else
 	{
@@ -57,8 +56,8 @@ void main(void)
 		{
 			if (CryptAcquireContext(
 				&hCryptProv,
-				pszContainerName,
-				pszProviderName,
+				pszSCReader,
+				MS_SCARD_PROV,
 				PROV_RSA_FULL,
 				CRYPT_NEWKEYSET))
 			{
@@ -200,5 +199,5 @@ void main(void)
 
 	_tprintf(TEXT("Everything is okay. A signature key "));
 	_tprintf(TEXT("pair and an exchange key exist in "));
-	_tprintf(TEXT("the %s key container.\n"), pszContainerName);
+	_tprintf(TEXT("the %s key container.\n"), pszSCReader);
 } // End main.
