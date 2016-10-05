@@ -7,6 +7,7 @@
 #include <windows.h>
 #include <Wincrypt.h>
 
+
 //-------------------------------------------------------------------
 // This example uses the function MyHandleError, a simple error
 // handling function to print an error message and exit 
@@ -23,57 +24,28 @@ void MyHandleError(LPTSTR psz)
 	exit(1);
 } // End of MyHandleError.
 
+
 void main(void)
 {
 	// Handle for the cryptographic provider context.
 	HCRYPTPROV hCryptProv;
 
 	// The name of the container.
-	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\");
+	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\990a2bd7-e738-46c7-b26f-1cf8fb9f1391");
+	LPCTSTR pszSCContainer = TEXT("{990a2bd7-e738-46c7-b26f-1cf8fb9f1391}");
 
-	//---------------------------------------------------------------
-	// Begin processing. Attempt to acquire a context by using the 
-	// specified key container.
 	if (CryptAcquireContext(
 		&hCryptProv,
 		pszSCReader,
 		MS_SCARD_PROV,
 		PROV_RSA_FULL,
-		0))
+		CRYPT_NEWKEYSET))
 	{
-		_tprintf(
-			TEXT("A crypto context with the %s key container ")
-			TEXT("has been acquired.\n"),
-			pszSCReader);
-	}
-	else
-	{
-		//-----------------------------------------------------------
-		// Some sort of error occurred in acquiring the context. 
-		// This is most likely due to the specified container 
-		// not existing. Create a new key container.
-		if (GetLastError() == NTE_BAD_KEYSET)
-		{
-			if (CryptAcquireContext(
-				&hCryptProv,
-				pszSCReader,
-				MS_SCARD_PROV,
-				PROV_RSA_FULL,
-				CRYPT_NEWKEYSET))
-			{
-				_tprintf(TEXT("A new key container has been ")
-					TEXT("created.\n"));
-			}
-			else
-			{
-				MyHandleError(TEXT("Could not create a new key ")
-					TEXT("container.\n"));
-			}
-		}
-		else
-		{
-			MyHandleError(TEXT("CryptAcquireContext failed.\n"));
-		}
+		_tprintf(TEXT("A new key container has been ")
+			TEXT("created.\n"));
+	} else {
+		MyHandleError(TEXT("Could not create a new key ")
+			TEXT("container.\n"));
 	}
 
 	//---------------------------------------------------------------
@@ -132,7 +104,6 @@ void main(void)
 		{
 			MyHandleError(TEXT("Error during CryptDestroyKey."));
 		}
-
 		hKey = NULL;
 	}
 
