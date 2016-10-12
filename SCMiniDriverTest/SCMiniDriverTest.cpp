@@ -31,8 +31,8 @@ void main(void)
 	HCRYPTPROV hCryptProv;
 
 	// The name of the container.
-	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\990a2bd7-e738-46c7-b26f-1cf8fb9f1391");
-	LPCTSTR pszSCContainer = TEXT("{990a2bd7-e738-46c7-b26f-1cf8fb9f1391}");
+	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\KeyContainer01");
+	LPCTSTR pszSCContainer = TEXT("KeyContainer01");
 
 	if (CryptAcquireContext(
 		&hCryptProv,
