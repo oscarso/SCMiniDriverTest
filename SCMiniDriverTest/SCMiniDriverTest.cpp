@@ -29,10 +29,12 @@ void main(void)
 {
 	// Handle for the cryptographic provider context.
 	HCRYPTPROV hCryptProv;
+	// Public/private key handle.
+	HCRYPTKEY hKey;
 
 	// The name of the container.
-	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\KeyContainer01");
-	LPCTSTR pszSCContainer = TEXT("KeyContainer01");
+	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\KeyContainer02");
+	LPCTSTR pszSCContainer = TEXT("KeyContainer02");
 
 	if (CryptAcquireContext(
 		&hCryptProv,
@@ -48,13 +50,25 @@ void main(void)
 			TEXT("container.\n"));
 	}
 
+	// Create a key exchange key pair.
+	_tprintf(TEXT("The exchange key does not exist.\n"));
+	_tprintf(TEXT("Attempting to create an exchange key ")
+		TEXT("pair.\n"));
+	if (CryptGenKey(
+		hCryptProv,
+		AT_SIGNATURE,
+		0x08000000,
+		&hKey))
+	{
+		_tprintf(TEXT("Exchange key pair created.\n"));
+	} else {
+		MyHandleError(TEXT("Error occurred attempting to ")
+			TEXT("create an exchange key.\n"));
+	}
+#if 0
 	//---------------------------------------------------------------
 	// A context with a key container is available.
 	// Attempt to get the handle to the signature key. 
-
-	// Public/private key handle.
-	HCRYPTKEY hKey;
-
 	if (CryptGetUserKey(
 		hCryptProv,
 		AT_SIGNATURE,
@@ -158,6 +172,7 @@ void main(void)
 
 		hKey = NULL;
 	}
+#endif
 
 	// Release the CSP.
 	if (hCryptProv)
