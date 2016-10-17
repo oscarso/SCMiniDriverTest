@@ -33,8 +33,8 @@ void main(void)
 	HCRYPTKEY hKey;
 
 	// The name of the container.
-	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\KeyContainer02");
-	LPCTSTR pszSCContainer = TEXT("KeyContainer02");
+	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\YKPIV_KEY_RETIRED1");
+	LPCTSTR pszSCContainer = TEXT("YKPIV_KEY_RETIRED1");
 
 	if (CryptAcquireContext(
 		&hCryptProv,
@@ -57,7 +57,7 @@ void main(void)
 	if (CryptGenKey(
 		hCryptProv,
 		AT_SIGNATURE,
-		0x08000000,
+		0x04000000,
 		&hKey))
 	{
 		_tprintf(TEXT("Exchange key pair created.\n"));
