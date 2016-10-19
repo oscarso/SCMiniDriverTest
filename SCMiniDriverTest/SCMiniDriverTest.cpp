@@ -54,10 +54,12 @@ void main(void)
 	_tprintf(TEXT("The exchange key does not exist.\n"));
 	_tprintf(TEXT("Attempting to create an exchange key ")
 		TEXT("pair.\n"));
+	DWORD	dwFlag1024 = 0x04000000;
+	DWORD	dwFlag2048 = 0x08000000;
 	if (CryptGenKey(
 		hCryptProv,
 		AT_SIGNATURE,
-		0x04000000,
+		dwFlag2048,
 		&hKey))
 	{
 		_tprintf(TEXT("Exchange key pair created.\n"));
