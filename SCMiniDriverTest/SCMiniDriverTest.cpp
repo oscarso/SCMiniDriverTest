@@ -28,13 +28,31 @@ void MyHandleError(LPTSTR psz)
 void main(void)
 {
 	// Handle for the cryptographic provider context.
-	HCRYPTPROV hCryptProv;
+	HCRYPTPROV	hCryptProv = 0;
 	// Public/private key handle.
-	HCRYPTKEY hKey;
+	HCRYPTKEY	hKeyGenK = 0;
+	HCRYPTKEY	hKeyGet = 0;
+	HCRYPTHASH	hHash;
+	BYTE		*pbSignature = NULL;
+	DWORD		dwSigLen = 0;
 
 	// The name of the container.
 	LPCTSTR pszSCReader = TEXT("\\\\.\\Yubico Yubikey 4 CCID 0\\YKPIV_KEY_RETIRED1");
-	LPCTSTR pszSCContainer = TEXT("YKPIV_KEY_RETIRED1");
+	DWORD	_KEY_LEN = 0x08000000; //0x04000000
+
+
+	if (CryptAcquireContext(
+		&hCryptProv,
+		pszSCReader,
+		MS_SCARD_PROV,
+		PROV_RSA_FULL,
+		CRYPT_DELETEKEYSET))
+	{
+		_tprintf(TEXT("A key container has been deleted.\n"));
+	}
+	else {
+		_tprintf(TEXT("Could not delete a key container.\n"));
+	}
 
 	if (CryptAcquireContext(
 		&hCryptProv,
@@ -43,147 +61,130 @@ void main(void)
 		PROV_RSA_FULL,
 		CRYPT_NEWKEYSET))
 	{
-		_tprintf(TEXT("A new key container has been ")
-			TEXT("created.\n"));
-	} else {
-		MyHandleError(TEXT("Could not create a new key ")
-			TEXT("container.\n"));
+		_tprintf(TEXT("A new key container has been created.\n"));
+	}
+	else {
+		MyHandleError(TEXT("Could not create a new key container.\n"));
 	}
 
-	// Create a key exchange key pair.
-	_tprintf(TEXT("The exchange key does not exist.\n"));
-	_tprintf(TEXT("Attempting to create an exchange key ")
-		TEXT("pair.\n"));
-	DWORD	dwFlag1024 = 0x04000000;
-	DWORD	dwFlag2048 = 0x08000000;
-	if (CryptGenKey(
-		hCryptProv,
-		AT_SIGNATURE,
-		dwFlag2048,
-		&hKey))
+	if (CryptGetUserKey(
+			hCryptProv,
+			AT_SIGNATURE,
+			&hKeyGet))
 	{
-		_tprintf(TEXT("Exchange key pair created.\n"));
-	} else {
-		MyHandleError(TEXT("Error occurred attempting to ")
-			TEXT("create an exchange key.\n"));
+		_tprintf(TEXT("CryptGetUserKey: Got user key.\n"));
 	}
-#if 0
-	//---------------------------------------------------------------
-	// A context with a key container is available.
-	// Attempt to get the handle to the signature key. 
+	if (GetLastError() == NTE_NO_KEY) {
+		// Create a key exchange key pair.
+		_tprintf(TEXT("The exchange key does not exist.\n"));
+		_tprintf(TEXT("Attempting to create an exchange key pair.\n"));
+		if (CryptGenKey(
+			hCryptProv,
+			AT_SIGNATURE,
+			_KEY_LEN,
+			&hKeyGenK))
+		{
+			_tprintf(TEXT("Exchange key pair created.\n"));
+		} else {
+			MyHandleError(TEXT("Error occurred attempting to ")
+				TEXT("create an exchange key.\n"));
+		}
+	} else {
+		MyHandleError(TEXT("Error occurred attempting to CryptGetUserKey."));
+	}
+
 	if (CryptGetUserKey(
 		hCryptProv,
 		AT_SIGNATURE,
-		&hKey))
+		&hKeyGet))
 	{
-		_tprintf(TEXT("A signature key is available.\n"));
-	}
-	else
-	{
-		_tprintf(TEXT("No signature key is available.\n"));
-		if (GetLastError() == NTE_NO_KEY)
-		{
-			//-------------------------------------------------------
-			// The error was that there is a container but no key.
-
-			// Create a signature key pair. 
-			_tprintf(TEXT("The signature key does not exist.\n"));
-			_tprintf(TEXT("Create a signature key pair.\n"));
-			if (CryptGenKey(
-				hCryptProv,
-				AT_SIGNATURE,
-				0,
-				&hKey))
-			{
-				_tprintf(TEXT("Created a signature key pair.\n"));
-			}
-			else
-			{
-				MyHandleError(TEXT("Error occurred creating a ")
-					TEXT("signature key.\n"));
-			}
-		}
-		else
-		{
-			MyHandleError(TEXT("An error other than NTE_NO_KEY ")
-				TEXT("getting a signature key.\n"));
-		}
-	} // End if.
-
-	_tprintf(TEXT("A signature key pair existed, or one was ")
-		TEXT("created.\n\n"));
-
-	// Destroy the signature key.
-	if (hKey)
-	{
-		if (!(CryptDestroyKey(hKey)))
-		{
-			MyHandleError(TEXT("Error during CryptDestroyKey."));
-		}
-		hKey = NULL;
+		_tprintf(TEXT("CryptGetUserKey: Got user key again.\n"));
+	} else {
+		MyHandleError(TEXT("Error occurred attempting to CryptGetUserKey."));
 	}
 
-	// Next, check the exchange key. 
-	if (CryptGetUserKey(
+	if (CryptCreateHash(
 		hCryptProv,
-		AT_KEYEXCHANGE,
-		&hKey))
+		CALG_SHA1,
+		0,
+		0,
+		&hHash))
 	{
-		_tprintf(TEXT("An exchange key exists.\n"));
+		_tprintf(TEXT("An empty hash object has been created.\n"));
+	} else {
+		MyHandleError(TEXT("Error during CryptCreateHash!\n"));
+	}
+
+	BYTE *pbBuffer = (BYTE *)"The data that is to be hashed and signed.";
+	DWORD dwBufferLen = strlen((char *)pbBuffer) + 1;
+	if (CryptHashData(
+		hHash,
+		pbBuffer,
+		dwBufferLen,
+		0))
+	{
+		_tprintf(TEXT("The data buffer has been hashed.\n"));
 	}
 	else
 	{
-		_tprintf(TEXT("No exchange key is available.\n"));
-
-		// Check to determine whether an exchange key 
-		// needs to be created.
-		if (GetLastError() == NTE_NO_KEY)
-		{
-			// Create a key exchange key pair.
-			_tprintf(TEXT("The exchange key does not exist.\n"));
-			_tprintf(TEXT("Attempting to create an exchange key ")
-				TEXT("pair.\n"));
-			if (CryptGenKey(
-				hCryptProv,
-				AT_KEYEXCHANGE,
-				0,
-				&hKey))
-			{
-				_tprintf(TEXT("Exchange key pair created.\n"));
-			}
-			else
-			{
-				MyHandleError(TEXT("Error occurred attempting to ")
-					TEXT("create an exchange key.\n"));
-			}
-		}
-		else
-		{
-			MyHandleError(TEXT("An error other than NTE_NO_KEY ")
-				TEXT("occurred.\n"));
-		}
+		MyHandleError(TEXT("Error during CryptHashData!\n"));
 	}
 
-	// Destroy the exchange key.
-	if (hKey)
+	//-------------------------------------------------------------------
+	// Determine the size of the signature and allocate memory.
+	if (CryptSignHash(
+		hHash,
+		AT_SIGNATURE,
+		NULL,
+		0,
+		NULL,
+		&dwSigLen))
 	{
-		if (!(CryptDestroyKey(hKey)))
-		{
-			MyHandleError(TEXT("Error during CryptDestroyKey."));
-		}
-
-		hKey = NULL;
+		_tprintf(TEXT("Signature length %d found.\n", dwSigLen));
 	}
-#endif
+	else
+	{
+		MyHandleError(TEXT("Error during CryptSignHash."));
+	}
 
-	// Release the CSP.
+	//-------------------------------------------------------------------
+	// Allocate memory for the signature buffer.
+	if (pbSignature = (BYTE *)malloc(dwSigLen))
+	{
+		_tprintf(TEXT("Memory allocated for the signature.\n"));
+	}
+	else
+	{
+		MyHandleError(TEXT("Out of memory."));
+	}
+
+	//-------------------------------------------------------------------
+	// Sign the hash object.
+	if (CryptSignHash(
+		hHash,
+		AT_SIGNATURE,
+		NULL,
+		0,
+		pbSignature,
+		&dwSigLen))
+	{
+		_tprintf(TEXT("pbSignature is the hash signature.\n"));
+	}
+	else
+	{
+		MyHandleError(TEXT("Error during CryptSignHash."));
+	}
+
+	if (hKeyGenK)
+		CryptDestroyKey(hKeyGenK);
+	if (hKeyGet)
+		CryptDestroyKey(hKeyGet);
+	if (pbSignature)
+		free(pbSignature);
+	if (hHash)
+		CryptDestroyHash(hHash);
 	if (hCryptProv)
-	{
-		if (!(CryptReleaseContext(hCryptProv, 0)))
-		{
-			MyHandleError(TEXT("Error during CryptReleaseContext."));
-		}
-	}
+		CryptReleaseContext(hCryptProv, 0);
 
 	_tprintf(TEXT("Everything is okay. A signature key "));
 	_tprintf(TEXT("pair and an exchange key exist in "));
